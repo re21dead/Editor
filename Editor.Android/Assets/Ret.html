@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Input and Navigation Menu</title>
+    <style>
+
+       body {
+            font-family: "Lato", sans-serif;
+        }
+
+        .sidenav {
+            height: 100%;
+            width: 0;
+            position: fixed;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            background-color: #fff;
+            overflow-x: hidden;
+            transition: 0.5s;
+            padding-top: 60px;
+        }
+
+            .sidenav a {
+                padding: 8px 8px 8px 32px;
+                text-decoration: none;
+                font-size: 25px;
+                color: #818181;
+                display: block;
+                transition: 0.3s;
+            }
+
+                .sidenav a:hover {
+                    color: #f1f1f1;
+                }
+
+            .sidenav .closebtn {
+                position: absolute;
+                top: 0;
+                right: 25px;
+                font-size: 36px;
+                margin-left: 50px;
+            }
+
+        @media screen and (max-height: 450px) {
+            .sidenav {
+                padding-top: 15px;
+            }
+
+                .sidenav a {
+                    font-size: 18px;
+                }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Side navigation menu -->
+ <div id="mySidenav" class="sidenav">
+        <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">×</a>
+		
+    <input type="file" id="file-input" accept="html" size="10000000">
+
+	<h3>Недавно открытые файлы:</h3>
+    <ul id="recent-files-list"></ul>
+</div>
+
+<!-- Page content -->
+<div id="main">
+    <span onclick="openNav()"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" style="fill: rgba(0, 0, 0, 1);transform: scaleX(-1);msFilter:progid:DXImageTransform.Microsoft.BasicImage(rotation=0, mirror=1);"><path d="M12 16c2.206 0 4-1.794 4-4s-1.794-4-4-4-4 1.794-4 4 1.794 4 4 4zm0-6c1.084 0 2 .916 2 2s-.916 2-2 2-2-.916-2-2 .916-2 2-2z"></path><path d="m2.845 16.136 1 1.73c.531.917 1.809 1.261 2.73.73l.529-.306A8.1 8.1 0 0 0 9 19.402V20c0 1.103.897 2 2 2h2c1.103 0 2-.897 2-2v-.598a8.132 8.132 0 0 0 1.896-1.111l.529.306c.923.53 2.198.188 2.731-.731l.999-1.729a2.001 2.001 0 0 0-.731-2.732l-.505-.292a7.718 7.718 0 0 0 0-2.224l.505-.292a2.002 2.002 0 0 0 .731-2.732l-.999-1.729c-.531-.92-1.808-1.265-2.731-.732l-.529.306A8.1 8.1 0 0 0 15 4.598V4c0-1.103-.897-2-2-2h-2c-1.103 0-2 .897-2 2v.598a8.132 8.132 0 0 0-1.896 1.111l-.529-.306c-.924-.531-2.2-.187-2.731.732l-.999 1.729a2.001 2.001 0 0 0 .731 2.732l.505.292a7.683 7.683 0 0 0 0 2.223l-.505.292a2.003 2.003 0 0 0-.731 2.733zm3.326-2.758A5.703 5.703 0 0 1 6 12c0-.462.058-.926.17-1.378a.999.999 0 0 0-.47-1.108l-1.123-.65.998-1.729 1.145.662a.997.997 0 0 0 1.188-.142 6.071 6.071 0 0 1 2.384-1.399A1 1 0 0 0 11 5.3V4h2v1.3a1 1 0 0 0 .708.956 6.083 6.083 0 0 1 2.384 1.399.999.999 0 0 0 1.188.142l1.144-.661 1 1.729-1.124.649a1 1 0 0 0-.47 1.108c.112.452.17.916.17 1.378 0 .461-.058.925-.171 1.378a1 1 0 0 0 .471 1.108l1.123.649-.998 1.729-1.145-.661a.996.996 0 0 0-1.188.142 6.071 6.071 0 0 1-2.384 1.399A1 1 0 0 0 13 18.7l.002 1.3H11v-1.3a1 1 0 0 0-.708-.956 6.083 6.083 0 0 1-2.384-1.399.992.992 0 0 0-1.188-.141l-1.144.662-1-1.729 1.124-.651a1 1 0 0 0 .471-1.108z"></path></svg></span>
+  
+    <iframe id="iframe" width="100%" height="790px"></iframe>
+   
+</div>
+
+<script>
+// Открытие базы данных IndexedDB
+let db;
+const request = indexedDB.open('recentlyOpenedFilesDB', 1);
+
+request.onerror = function(event) {
+    console.error('Database error:', event.target.error);
+};
+
+request.onsuccess = function(event) {
+    db = event.target.result;
+};
+
+request.onupgradeneeded = function(event) {
+    const db = event.target.result;
+    const objectStore = db.createObjectStore('files', { keyPath: 'name' });
+};
+
+// Функция для добавления файла в IndexedDB
+function addToIndexedDB(fileName, content) {
+    const transaction = db.transaction(['files'], 'readwrite');
+    const objectStore = transaction.objectStore('files');
+    const request = objectStore.add({ name: fileName, content: content });
+
+    request.onsuccess = function(event) {
+        console.log('File added to the database', event.target.result);
+    };
+
+    request.onerror = function(event) {
+        console.error('Error adding file to the database', event.target.error);
+    };
+}
+
+// Обновите функцию addToRecentlyOpened, чтобы использовать IndexedDB
+function addToRecentlyOpened(fileName, content) {
+    // Добавление файла в IndexedDB
+    addToIndexedDB(fileName, content);
+
+    // Остальная часть вашего кода...
+}
+
+// Array to store recently opened files
+let recentlyOpenedFiles = [];
+
+// Retrieve recently opened files from localStorage on page load
+window.addEventListener('load', function () {
+    const storedFiles = JSON.parse(localStorage.getItem('recentlyOpenedFiles'));
+    if (storedFiles) {
+        recentlyOpenedFiles = storedFiles;
+        updateRecentlyOpenedUI();
+        // Check if there's a file stored and display it in the iframe
+        if (recentlyOpenedFiles.length > 0) {
+            displayFile(recentlyOpenedFiles[0].content);
+        }
+    }
+});
+
+function openNav() {
+    document.getElementById("mySidenav").style.width = "250px";
+}
+
+function closeNav() {
+    document.getElementById("mySidenav").style.width = "0";
+}
+
+const fileInput = document.getElementById('file-input');
+const iframe = document.getElementById('iframe');
+const fileList = document.getElementById('recent-files-list');
+const openFileButton = document.getElementById('open-file-button');
+const filePathInput = document.getElementById('file-path-input');
+
+fileInput.addEventListener('change', function () {
+    const file = this.files[0];
+
+    if (file) {
+        const reader = new FileReader();
+
+        reader.onload = function () {
+            const content = reader.result;
+
+            // Check if the file is already in the list
+            const fileIndex = recentlyOpenedFiles.findIndex(item => item.name === file.name);
+            if (fileIndex !== -1) {
+                // If the file is already in the list, remove it to avoid duplication
+                recentlyOpenedFiles.splice(fileIndex, 1);
+            }
+
+            // Display the file in the iframe
+            displayFile(content);
+
+            // Add the file to the recently opened list
+            addToRecentlyOpened(file.name, content);
+        };
+
+        reader.readAsText(file);
+    }
+});
+
+openFileButton.addEventListener('click', function () {
+    const filePath = filePathInput.value.trim();
+
+    if (filePath !== '') {
+        fetch(filePath)
+            .then(response => response.text())
+            .then(content => {
+                displayFile(content);
+                addToRecentlyOpened(filePath, content);
+            })
+            .catch(error => {
+                console.error('Error fetching file:', error);
+            });
+    }
+});
+
+// Function to add a file to the recently opened list
+function addToRecentlyOpened(fileName, content) {
+    // Add the file to the beginning of the list
+    recentlyOpenedFiles.unshift({ name: fileName, content: content });
+
+    // Limit the list to 5 items
+    if (recentlyOpenedFiles.length > 5) {
+        recentlyOpenedFiles.pop(); // Remove the last item if the list exceeds 5
+    }
+
+    // Update localStorage
+    localStorage.setItem('recentlyOpenedFiles', JSON.stringify(recentlyOpenedFiles));
+
+    // Update the UI with the list of recently opened files
+    updateRecentlyOpenedUI();
+}
+
+// Function to update the UI with the list of recently opened files
+function updateRecentlyOpenedUI() {
+    fileList.innerHTML = ''; // Clear the existing list
+
+    // Populate the list with recently opened files
+    recentlyOpenedFiles.forEach((file, index) => {
+        const listItem = document.createElement('li');
+        listItem.textContent = `${file.name}`;
+        listItem.addEventListener('click', function() {
+            displayFile(file.content);
+        });
+        fileList.appendChild(listItem);
+    });
+}
+
+// Function to display file content in the iframe
+function displayFile(content) {
+    const doc = iframe.contentDocument;
+    doc.open();
+    doc.write(content);
+    doc.close();
+
+    Array.from(doc.getElementsByTagName('script')).forEach(script => {
+        const newScript = document.createElement('script');
+        newScript.src = script.src;
+        script.parentNode.replaceChild(newScript, script);
+    });
+
+    Array.from(doc.getElementsByTagName('link')).forEach(link => {
+        const newLink = document.createElement('link');
+        newLink.rel = 'stylesheet';
+        newLink.href = link.href;
+        link.parentNode.replaceChild(newLink, link);
+    });
+
+    // Close the side navigation menu
+    closeNav();
+}
+
+
+</script>
+
+</body>
+</html>
+
+
+
+
+
+
+
